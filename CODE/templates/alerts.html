@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced NIDS - Alerts History</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📋 Alert History</h1>
+            <div class="nav-links">
+                <a href="/">Home</a> | 
+                <a href="/dashboard">Dashboard</a>
+            </div>
+        </header>
+        
+        <div class="alerts-container">
+            <div class="alerts-header">
+                <h3>All Security Alerts</h3>
+                <div class="filter-controls">
+                    <select id="severityFilter">
+                        <option value="">All</option>
+                        <option value="low">Low</option>
+                        <option value="medium">Medium</option>
+                        <option value="high">High</option>
+                        <option value="critical">Critical</option>
+                    </select>
+                    <input type="date" id="dateFilter">
+                    <button class="btn btn-primary" id="applyFilterBtn">Apply Filter</button>
+                    <button class="btn" id="exportBtn">Export CSV</button>
+                </div>
+            </div>
+            
+            <div class="table-responsive">
+                <table class="alerts-table">
+                    <thead>
+                        <tr>
+                            <th>Timestamp</th>
+                            <th>Severity</th>
+                            <th>Attack Type</th>
+                            <th>Source IP</th>
+                            <th>Destination IP</th>
+                            <th>Confidence</th>
+                            <th>Detection Method</th>
+                            <th>Details</th>
+                        </tr>
+                    </thead>
+                    <tbody id="alertsTableBody">
+                        <tr><td colspan="8">Loading alerts...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="pagination" id="pagination">
+                <!-- Pagination will be added here -->
+            </div>
+        </div>
+        
+        <div class="stats-container" style="background: white; padding: 20px; border-radius: 10px; margin-top: 20px;">
+            <h3>📊 Alert Statistics</h3>
+            <div id="alertStats">
+                <div class="spinner"></div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let currentPage = 1;
+        let currentFilter = '';
+        
+        async function loadAlerts() {
+            const severity = document.getElementById('severityFilter').value;
+            const date = document.getElementById('dateFilter').value;
+            
+            let url = `/api/alerts?limit=100`;
+            if (severity) url += `&severity=${severity}`;
+            
+            try {
+                const response = await fetch(url);
+                const alerts = await response.json();
+                displayAlerts(alerts);
+            } catch (error) {
+                console.error('Error loading alerts:', error);
+            }
+        }
+        
+        function displayAlerts(alerts) {
+            const tbody = document.getElementById('alertsTableBody');
+            if (alerts.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8">No alerts found</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = alerts.map(alert => `
+                <tr class="alert-${alert.severity}">
+                    <td>${new Date(alert.timestamp).toLocaleString()}</td>
+                    <td><span class="badge badge-${getSeverityClass(alert.severity)}">${alert.severity}</span></td>
+                    <td>${alert.attack_type}</td>
+                    <td>${alert.packet_info?.src_ip || 'Unknown'}</td>
+                    <td>${alert.packet_info?.dst_ip || 'Unknown'}</td>
+                    <td>${(alert.confidence * 100).toFixed(1)}%</td>
+                    <td>${alert.detection_method}</td>
+                    <td>${alert.details || '-'}</td>
+                </tr>
+            `).join('');
+        }
+        
+        function getSeverityClass(severity) {
+            const classes = {
+                'low': 'success',
+                'medium': 'warning',
+                'high': 'danger',
+                'critical': 'danger'
+            };
+            return classes[severity] || 'secondary';
+        }
+        
+        async function loadStats() {
+            try {
+                const response = await fetch('/api/threats/summary');
+                const stats = await response.json();
+                displayStats(stats);
+            } catch (error) {
+                console.error('Error loading stats:', error);
+            }
+        }
+        
+        function displayStats(stats) {
+            const container = document.getElementById('alertStats');
+            container.innerHTML = `
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <h3>Total Threats</h3>
+                        <div class="stat-value">${stats.total || 0}</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Low</h3>
+                        <div class="stat-value" style="color: #28a745;">${stats.by_severity?.low || 0}</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Medium</h3>
+                        <div class="stat-value" style="color: #ffc107;">${stats.by_severity?.medium || 0}</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>High</h3>
+                        <div class="stat-value" style="color: #fd7e14;">${stats.by_severity?.high || 0}</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Critical</h3>
+                        <div class="stat-value" style="color: #dc3545;">${stats.by_severity?.critical || 0}</div>
+                    </div>
+                </div>
+                <div style="margin-top: 20px;">
+                    <h4>Top Attack Types</h4>
+                    <ul>
+                        ${Object.entries(stats.by_type || {}).slice(0, 10).map(([type, count]) => 
+                            `<li><strong>${type}:</strong> ${count}</li>`
+                        ).join('')}
+                    </ul>
+                </div>
+            `;
+        }
+        
+        function exportToCSV() {
+            fetch('/api/alerts?limit=1000')
+                .then(r => r.json())
+                .then(alerts => {
+                    const headers = ['Timestamp', 'Severity', 'Attack Type', 'Source IP', 'Destination IP', 'Confidence', 'Detection Method'];
+                    const csvRows = [headers.join(',')];
+                    
+                    alerts.forEach(alert => {
+                        const row = [
+                            alert.timestamp,
+                            alert.severity,
+                            alert.attack_type,
+                            alert.packet_info?.src_ip || '',
+                            alert.packet_info?.dst_ip || '',
+                            alert.confidence,
+                            alert.detection_method
+                        ];
+                        csvRows.push(row.join(','));
+                    });
+                    
+                    const blob = new Blob([csvRows.join('\n')], { type: 'text/csv' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `nids_alerts_${new Date().toISOString()}.csv`;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                });
+        }
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            loadAlerts();
+            loadStats();
+            
+            document.getElementById('applyFilterBtn').addEventListener('click', loadAlerts);
+            document.getElementById('exportBtn').addEventListener('click', exportToCSV);
+            
+            // Auto-refresh every 10 seconds
+            setInterval(() => {
+                loadAlerts();
+                loadStats();
+            }, 10000);
+        });
+    </script>
+</body>
+</html>

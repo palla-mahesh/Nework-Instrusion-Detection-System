@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced NIDS - Network Intrusion Detection System</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🛡️ Advanced Network Intrusion Detection System</h1>
+            <p class="subtitle">Real-time Network Security Monitoring | ML-Powered Anomaly Detection | Automated Response</p>
+        </header>
+        
+        <div class="stats-grid">
+            <div class="stat-card">
+                <h3>Total Packets</h3>
+                <div class="stat-value" id="totalPackets">0</div>
+            </div>
+            <div class="stat-card">
+                <h3>Packets/sec</h3>
+                <div class="stat-value" id="packetsPerSec">0</div>
+            </div>
+            <div class="stat-card">
+                <h3>Bandwidth</h3>
+                <div class="stat-value" id="mbps">0</div>
+                <div class="stat-unit">Mbps</div>
+            </div>
+            <div class="stat-card">
+                <h3>Active Alerts</h3>
+                <div class="stat-value" id="activeAlerts">0</div>
+            </div>
+            <div class="stat-card">
+                <h3>Blocked IPs</h3>
+                <div class="stat-value" id="blockedIPs">0</div>
+            </div>
+            <div class="stat-card">
+                <h3>Queue Size</h3>
+                <div class="stat-value" id="queueSize">0</div>
+            </div>
+        </div>
+        
+        <div class="charts-grid">
+            <div class="chart-container">
+                <h3>📊 Network Traffic Rate</h3>
+                <canvas id="packetRateChart"></canvas>
+            </div>
+            <div class="chart-container">
+                <h3>⚠️ Threat Severity Distribution</h3>
+                <canvas id="threatTrendChart"></canvas>
+            </div>
+            <div class="chart-container">
+                <h3>📡 Protocol Distribution</h3>
+                <canvas id="protocolChart"></canvas>
+            </div>
+        </div>
+        
+        <div class="alerts-container">
+            <div class="alerts-header">
+                <h3>🚨 Recent Security Alerts</h3>
+                <div class="filter-controls">
+                    <select id="severityFilter">
+                        <option value="">All Severities</option>
+                        <option value="low">Low</option>
+                        <option value="medium">Medium</option>
+                        <option value="high">High</option>
+                        <option value="critical">Critical</option>
+                    </select>
+                    <button class="btn btn-primary" id="refreshBtn">Refresh</button>
+                    <label>
+                        <input type="checkbox" id="autoRefreshToggle" checked> Auto-refresh
+                    </label>
+                </div>
+            </div>
+            <table class="alerts-table">
+                <thead>
+                    <tr>
+                        <th>Time</th>
+                        <th>Severity</th>
+                        <th>Attack Type</th>
+                        <th>Source IP</th>
+                        <th>Destination IP</th>
+                        <th>Confidence</th>
+                        <th>Detection Method</th>
+                    </tr>
+                </thead>
+                <tbody id="alertsTableBody">
+                    <tr>
+                        <td colspan="7" style="text-align: center;">Loading alerts...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        
+        <div class="health-container">
+            <h3>🔧 System Health</h3>
+            <div class="health-indicators">
+                <div class="health-item">
+                    <strong>Status:</strong>
+                    <span id="systemStatus">🟢 Initializing...</span>
+                </div>
+                <div class="health-item">
+                    <strong>ML Model:</strong>
+                    <span id="mlStatus">Loading...</span>
+                </div>
+                <div class="health-item">
+                    <strong>Active Connections:</strong>
+                    <span id="activeConnections">0</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="/static/js/dashboard.js"></script>
+</body>
+</html>
